@@ -114,40 +114,70 @@ def set_game_type_in_session(intent, session):
     if 'Game' in intent['slots']:
         game_type = intent['slots']['Game']['value']
         session_attributes = {"game_type": game_type}
-        speech_output = "I now know your favorite color is " + \
-                        favorite_color + \
-                        ". You can ask me your favorite color by saying, " \
-                        "what's my favorite color?"
-        reprompt_text = "You can ask me your favorite color by saying, " \
-                        "what's my favorite color?"
+        speech_output = "Okay, let's practice " + game_type + "! "
+        (question, session_attributes) = get_question(session_attributes)
+        speech_output += question
     else:
-        speech_output = "I'm not sure what your favorite color is. " \
-                        "Please try again."
-        reprompt_text = "I'm not sure what your favorite color is. " \
-                        "You can tell me your favorite color by saying, " \
-                        "my favorite color is red."
+        speech_output   = "Sorry, I didn't get that. Please choose a game type again."
+        reprompt_output = "Sorry, I didn't get that. Please choose a game type again."
     return build_response(session_attributes, build_speechlet_response(
         card_title, speech_output, reprompt_text, should_end_session))
 
-def get_color_from_session(intent, session):
-    session_attributes = {}
-    reprompt_text = None
-
-    if "favoriteColor" in session.get('attributes', {}):
-        favorite_color = session['attributes']['favoriteColor']
-        speech_output = "Your favorite color is " + favorite_color + \
-                        ". Goodbye."
-        should_end_session = True
+def get_question(session_attributes):
+    if session_attributes['game_type'] == 'hex to dec':
+        (question, session_attributes) = get_hex_question(session_attributes)
+    elif session_attributes['game_type'] == 'dec to hex':
+        (question, session_attributes) = get_dec_question(session_attributes)
     else:
-        speech_output = "I'm not sure what your favorite color is. " \
-                        "You can say, my favorite color is red."
-        should_end_session = False
+        if randint(0,1):
+            (question, session_attributes) = get_hex_question(session_attributes)
+        else:
+            (question, session_attributes) = get_dec_question(session_attributes)
+    return (question, session_attributes)
 
-    # Setting reprompt_text to None signifies that we do not want to reprompt
-    # the user. If the user does not respond or says something that is not
-    # understood, the session will end.
+def get_hex_question(session_attributes):
+    answer = randint(10,255)
+    session_attributes['answer'] = answer
+    question = hex(answer)[2:]
+    if len(question) > 1:
+        # Make Alexa will spell out the hex
+        question = '.'.join(list(question)) + '.'
+    question = "hex " + question
+    return (question, session_attributes)
+
+def get_dec__question(session_attributes):
+    answer = randint(10,255)
+    session_attributes['answer'] = answer
+    question = "dec " + str(answer)
+    return (question, session_attributes)
+
+def get_answer(intent, session):
+    session_attributes = session['attributes']
+    """Get answer from user, check, then ask another question"""
+    answer = session['attributes']['answer']
+    if "DecimalAnswer" in intent['slots']:
+        user_answer = intent['slots']['DecimalAnswer']['value']
+    elif "HexAnswer1" in intent['slots']:
+        user_answer = intent['slots']['HexAnswer1']['value']
+        if "HexAnswer2" in intent['slots']:
+            user_answer += intent['slots']['HexAnswer1']['value']
+        user_answer = int(user_answer, 16)
+    else:
+        speech_output = "Could you repeat your answer?" \
+        reprompt_text = "Could you repeat your answer?" \
+        should_end_session = False
+        return build_response(session_attributes, build_speechlet_response(
+            '', speech_output, reprompt_text, should_end_session))
+    if user_answer == answer:
+        response = ["Correct!", "Woot!", "Yup!", "Damn, son", "On fire!"]
+        speech_output = response[randint(0, len(response))] + " "
+    else:
+        speech_output = "No, sorry the answer was {}. Let's keep trying! ".format(answer)
+    (question, session_attributes) = get_question(session_attributes)
+    speech_output += question
+    should_end_session = False
     return build_response(session_attributes, build_speechlet_response(
-        intent['name'], speech_output, reprompt_text, should_end_session))
+        '', speech_output, reprompt_text, should_end_session))
 
 # --------------- Helpers that build all of the responses ----------------------
 
