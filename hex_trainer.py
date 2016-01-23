@@ -9,7 +9,7 @@ Hex Trainer Alexa Skill -- Game to improve ability to convert to and from hexade
 from __future__ import print_function
 from random import randint
 
-MAX_RANGE = 20
+MAX_RANGE = 32
 
 def lambda_handler(event, context):
     """ Route the incoming request based on type (LaunchRequest, IntentRequest,
@@ -101,7 +101,6 @@ def set_game_type_in_session(intent, session):
     """ Sets the game type in the session and prepares the speech to reply to the
     user.
     """
-    card_title = intent['name']
     session_attributes = {}
     should_end_session = False
 
@@ -115,8 +114,8 @@ def set_game_type_in_session(intent, session):
     else:
         speech_output = "Sorry, I didn't get that. Please choose a game type again."
         reprompt_text = "Sorry, I didn't get that. Please choose a game type again."
-    return build_response(session_attributes, build_speechlet_response(
-        card_title, speech_output, reprompt_text, should_end_session))
+    return build_response(session_attributes, build_speechlet_response_no_card(
+        speech_output, reprompt_text, should_end_session))
 
 def get_question(session_attributes):
     answer = randint(10,MAX_RANGE)
@@ -145,9 +144,9 @@ def get_dec_question(answer):
     return question
 
 def get_answer(intent, session):
-    session_attributes = session['attributes']
+    session_attributes = session.get('attributes', {})
     """Get answer from user, check, then ask another question"""
-    answer = session['attributes']['answer']
+    answer = session_attributes['answer']
     if 'value' in intent['slots']['DecimalAnswer']:
         user_answer = int(intent['slots']['DecimalAnswer']['value'])
     elif 'value' in intent['slots']['HexAnswerOne']:
@@ -160,20 +159,36 @@ def get_answer(intent, session):
         reprompt_text = "Could you repeat your answer?"
         should_end_session = False
         return build_response(session_attributes, build_speechlet_response(
-            '', speech_output, reprompt_text, should_end_session))
+            speech_output, reprompt_text, should_end_session))
     if user_answer == answer:
-        response = ["Correct!", "Woot!", "Yup!", "Damn, son", "On fire!"]
-        speech_output = response[randint(0, len(response))] + " "
+        response = ["Correct!", "Woot!", "Yes!", "Yep!", "You're on fire!", 
+                    "Killin' it!", "You got it!, "]
+        speech_output = response[randint(0, len(response)-1)] + " "
     else:
         speech_output = "No, sorry the answer was {}. Let's keep trying! ".format(answer)
     (question, session_attributes) = get_question(session_attributes)
     speech_output += question
+    reprompt_text = question    
     should_end_session = False
     return build_response(session_attributes, build_speechlet_response(
-        '', speech_output, reprompt_text, should_end_session))
+        speech_output, reprompt_text, should_end_session))
 
 # --------------- Helpers that build all of the responses ----------------------
 
+def build_speechlet_response_no_card(output, reprompt_text, should_end_session):
+    return {
+        'outputSpeech': {
+            'type': 'PlainText',
+            'text': output
+        },
+        'reprompt': {
+            'outputSpeech': {
+                'type': 'PlainText',
+                'text': reprompt_text
+            }
+        },
+        'shouldEndSession': should_end_session
+    }
 
 def build_speechlet_response(title, output, reprompt_text, should_end_session):
     return {
