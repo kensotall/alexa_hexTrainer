@@ -19,9 +19,9 @@ def lambda_handler(event, context):
     Skill's application ID to prevent someone else from configuring a skill that 
     sends requests to this function.
     """
-    # if (event['session']['application']['applicationId'] !=
-    #         "amzn1.echo-sdk-ams.app.[unique-value-here]"):
-    #     raise ValueError("Invalid Application ID")
+    if (event['session']['application']['applicationId'] !=
+             "amzn1.echo-sdk-ams.app."):
+         raise ValueError("Invalid Application ID")
 
     if event['session']['new']:
         on_session_started({'requestId': event['request']['requestId']},
@@ -63,12 +63,14 @@ def on_intent(intent_request, session):
     intent_name = intent_request['intent']['name']
 
     # Dispatch to your skill's intent handlers
-    if intent_name == "GameTypeIntent":
+    if (intent_name == "PlayIntent") or 
+       (intent_name == AMAZON.StartOverIntent) or 
+       (intent_name == AMAZON.HelpIntent):
+        return get_welcome_response()
+    elif intent_name == "GameTypeIntent":
         return set_game_type_in_session(intent, session)
     elif intent_name == "AnswerIntent":
         return get_answer(intent, session)
-    elif intent_name == "AMAZON.HelpIntent":
-        return get_welcome_response()
     else:
         raise ValueError("Invalid intent")
 
@@ -101,7 +103,7 @@ def get_welcome_response():
         card_title, speech_output, reprompt_text, should_end_session))
 
 def set_game_type_in_session(intent, session):
-    """ Sets the color in the session and prepares the speech to reply to the
+    """ Sets the game type in the session and prepares the speech to reply to the
     user.
     """
 
@@ -109,9 +111,9 @@ def set_game_type_in_session(intent, session):
     session_attributes = {}
     should_end_session = False
 
-    if 'Color' in intent['slots']:
-        favorite_color = intent['slots']['Color']['value']
-        session_attributes = create_favorite_color_attributes(favorite_color)
+    if 'Game' in intent['slots']:
+        game_type = intent['slots']['Game']['value']
+        session_attributes = {"game_type": game_type}
         speech_output = "I now know your favorite color is " + \
                         favorite_color + \
                         ". You can ask me your favorite color by saying, " \
@@ -126,11 +128,6 @@ def set_game_type_in_session(intent, session):
                         "my favorite color is red."
     return build_response(session_attributes, build_speechlet_response(
         card_title, speech_output, reprompt_text, should_end_session))
-
-
-def create_favorite_color_attributes(favorite_color):
-    return {"favoriteColor": favorite_color}
-
 
 def get_color_from_session(intent, session):
     session_attributes = {}

@@ -1,0 +1,38 @@
+{
+  "intents": [
+    {
+      "intent": "PlayIntent"
+    },
+    {
+      "intent": "GameTypeIntent",
+      "slots": [
+        {
+          "name": "Game",
+          "type": "LIST_OF_GAMES"
+        }
+       ]
+    },
+    {
+      "intent": "AnswerIntent",
+      "slots": [
+        {
+          "name": "DecimalAnswer",
+          "type": "AMAZON.NUMBER"
+        },
+        {
+          "name": "HexAnswer1",
+          "type": "LIST_OF_HEX"
+        },
+        {
+          "name": "HexAnswer2",
+          "type": "LIST_OF_HEX"
+        }
+    },
+    {
+      "intent": "AMAZON.StartOverIntent"
+    },
+    {
+      "intent": "AMAZON.HelpIntent"
+    }
+  ]
+}

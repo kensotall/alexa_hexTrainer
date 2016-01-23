@@ -1,0 +1,4 @@
+hex to decimal
+decimal to hex
+both
+mixed
