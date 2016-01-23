@@ -119,42 +119,40 @@ def set_game_type_in_session(intent, session):
         card_title, speech_output, reprompt_text, should_end_session))
 
 def get_question(session_attributes):
-    if session_attributes['game_type'] == 'hex to decimal':
-        (question, session_attributes) = get_hex_question(session_attributes)
-    elif session_attributes['game_type'] == 'decimal to hex':
-        (question, session_attributes) = get_dec_question(session_attributes)
-    else:
-        if randint(0,1):
-            (question, session_attributes) = get_hex_question(session_attributes)
-        else:
-            (question, session_attributes) = get_dec_question(session_attributes)
-    return (question, session_attributes)
-
-def get_hex_question(session_attributes):
     answer = randint(10,MAX_RANGE)
     session_attributes['answer'] = answer
+    if session_attributes['game_type'] == 'hex to decimal':
+        question = get_hex_question(answer)
+    elif session_attributes['game_type'] == 'decimal to hex':
+        question = get_dec_question(answer)
+    else:
+        if randint(0,1):
+            question = get_hex_question(answer)
+        else:
+            question = get_dec_question(answer)
+    return (question, session_attributes)
+
+def get_hex_question(answer):
     question = hex(answer)[2:]
     if len(question) > 1:
         # Make Alexa spell out the hex
         question = '.'.join(list(question)) + '.'
-    question = "What is {} in decimal?".format(question)
-    return (question, session_attributes)
+    question = "What is {} in decimal.".format(question)
+    return question
 
-def get_dec_question(session_attributes):
-    answer = randint(10,MAX_RANGE)
-    session_attributes['answer'] = answer
-    question = "What is {} in hex?".format(answer) 
-    return (question, session_attributes)
+def get_dec_question(answer):
+    question = "What is {} in hex.".format(answer) 
+    return question
 
 def get_answer(intent, session):
     session_attributes = session['attributes']
     """Get answer from user, check, then ask another question"""
     answer = session['attributes']['answer']
-    if "DecimalAnswer" in intent['slots']:
+    if 'value' in intent['slots']['DecimalAnswer']:
         user_answer = int(intent['slots']['DecimalAnswer']['value'])
-    elif "HexAnswerOne" in intent['slots']:
+    elif 'value' in intent['slots']['HexAnswerOne']:
         user_answer = intent['slots']['HexAnswerOne']['value']
-        if "HexAnswerTwo" in intent['slots']:
+        if 'value' in intent['slots']['HexAnswerTwo']:
             user_answer += intent['slots']['HexAnswerTwo']['value']
         user_answer = int(user_answer, 16)
     else:
