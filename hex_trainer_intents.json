@@ -20,16 +20,14 @@
           "type": "AMAZON.NUMBER"
         },
         {
-          "name": "HexAnswer1",
+          "name": "HexAnswerOne",
           "type": "LIST_OF_HEX"
         },
         {
-          "name": "HexAnswer2",
+          "name": "HexAnswerTwo",
           "type": "LIST_OF_HEX"
         }
-    },
-    {
-      "intent": "AMAZON.StartOverIntent"
+       ]
     },
     {
       "intent": "AMAZON.HelpIntent"

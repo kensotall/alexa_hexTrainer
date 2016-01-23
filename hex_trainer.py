@@ -7,6 +7,9 @@ Hex Trainer Alexa Skill -- Game to improve ability to convert to and from hexade
 """
 
 from __future__ import print_function
+from random import randint
+
+MAX_RANGE = 20
 
 def lambda_handler(event, context):
     """ Route the incoming request based on type (LaunchRequest, IntentRequest,
@@ -20,7 +23,7 @@ def lambda_handler(event, context):
     sends requests to this function.
     """
     if (event['session']['application']['applicationId'] !=
-             "amzn1.echo-sdk-ams.app."):
+             "amzn1.echo-sdk-ams.app.d4ed5480-ef4a-4390-9a5d-a04bdac6c0f5"):
          raise ValueError("Invalid Application ID")
 
     if event['session']['new']:
@@ -34,19 +37,15 @@ def lambda_handler(event, context):
     elif event['request']['type'] == "SessionEndedRequest":
         return on_session_ended(event['request'], event['session'])
 
-
 def on_session_started(session_started_request, session):
     """ Called when the session starts """
-
     print("on_session_started requestId=" + session_started_request['requestId']
           + ", sessionId=" + session['sessionId'])
-
 
 def on_launch(launch_request, session):
     """ Called when the user launches the skill without specifying what they
     want
     """
-
     print("on_launch requestId=" + launch_request['requestId'] +
           ", sessionId=" + session['sessionId'])
     # Dispatch to your skill's launch
@@ -55,22 +54,18 @@ def on_launch(launch_request, session):
 
 def on_intent(intent_request, session):
     """ Called when the user specifies an intent for this skill """
-
     print("on_intent requestId=" + intent_request['requestId'] +
           ", sessionId=" + session['sessionId'])
-
     intent = intent_request['intent']
     intent_name = intent_request['intent']['name']
 
     # Dispatch to your skill's intent handlers
-    if (intent_name == "PlayIntent") or 
-       (intent_name == AMAZON.StartOverIntent) or 
-       (intent_name == AMAZON.HelpIntent):
-        return get_welcome_response()
-    elif intent_name == "GameTypeIntent":
+    if intent_name == "GameTypeIntent":
         return set_game_type_in_session(intent, session)
     elif intent_name == "AnswerIntent":
         return get_answer(intent, session)
+    elif (intent_name == "PlayIntent") or (intent_name == "AMAZON.StartOverIntent") or (intent_name == "AMAZON.HelpIntent"):
+        return get_welcome_response()
     else:
         raise ValueError("Invalid intent")
 
@@ -97,7 +92,7 @@ def get_welcome_response():
                     "or both."
     # If the user either does not reply to the welcome message or says something
     # that is not understood, they will be prompted again with this text.
-    reprompt_text = "Please choose decimal to hex, hex to decimal, or both. " \
+    reprompt_text = "Please choose decimal to hex, hex to decimal, or both. "
     should_end_session = False
     return build_response(session_attributes, build_speechlet_response(
         card_title, speech_output, reprompt_text, should_end_session))
@@ -106,7 +101,6 @@ def set_game_type_in_session(intent, session):
     """ Sets the game type in the session and prepares the speech to reply to the
     user.
     """
-
     card_title = intent['name']
     session_attributes = {}
     should_end_session = False
@@ -117,16 +111,17 @@ def set_game_type_in_session(intent, session):
         speech_output = "Okay, let's practice " + game_type + "! "
         (question, session_attributes) = get_question(session_attributes)
         speech_output += question
+        reprompt_text = question        
     else:
-        speech_output   = "Sorry, I didn't get that. Please choose a game type again."
-        reprompt_output = "Sorry, I didn't get that. Please choose a game type again."
+        speech_output = "Sorry, I didn't get that. Please choose a game type again."
+        reprompt_text = "Sorry, I didn't get that. Please choose a game type again."
     return build_response(session_attributes, build_speechlet_response(
         card_title, speech_output, reprompt_text, should_end_session))
 
 def get_question(session_attributes):
-    if session_attributes['game_type'] == 'hex to dec':
+    if session_attributes['game_type'] == 'hex to decimal':
         (question, session_attributes) = get_hex_question(session_attributes)
-    elif session_attributes['game_type'] == 'dec to hex':
+    elif session_attributes['game_type'] == 'decimal to hex':
         (question, session_attributes) = get_dec_question(session_attributes)
     else:
         if randint(0,1):
@@ -136,19 +131,19 @@ def get_question(session_attributes):
     return (question, session_attributes)
 
 def get_hex_question(session_attributes):
-    answer = randint(10,255)
+    answer = randint(10,MAX_RANGE)
     session_attributes['answer'] = answer
     question = hex(answer)[2:]
     if len(question) > 1:
-        # Make Alexa will spell out the hex
+        # Make Alexa spell out the hex
         question = '.'.join(list(question)) + '.'
-    question = "hex " + question
+    question = "What is {} in decimal?".format(question)
     return (question, session_attributes)
 
-def get_dec__question(session_attributes):
-    answer = randint(10,255)
+def get_dec_question(session_attributes):
+    answer = randint(10,MAX_RANGE)
     session_attributes['answer'] = answer
-    question = "dec " + str(answer)
+    question = "What is {} in hex?".format(answer) 
     return (question, session_attributes)
 
 def get_answer(intent, session):
@@ -156,15 +151,15 @@ def get_answer(intent, session):
     """Get answer from user, check, then ask another question"""
     answer = session['attributes']['answer']
     if "DecimalAnswer" in intent['slots']:
-        user_answer = intent['slots']['DecimalAnswer']['value']
-    elif "HexAnswer1" in intent['slots']:
-        user_answer = intent['slots']['HexAnswer1']['value']
-        if "HexAnswer2" in intent['slots']:
-            user_answer += intent['slots']['HexAnswer1']['value']
+        user_answer = int(intent['slots']['DecimalAnswer']['value'])
+    elif "HexAnswerOne" in intent['slots']:
+        user_answer = intent['slots']['HexAnswerOne']['value']
+        if "HexAnswerTwo" in intent['slots']:
+            user_answer += intent['slots']['HexAnswerTwo']['value']
         user_answer = int(user_answer, 16)
     else:
-        speech_output = "Could you repeat your answer?" \
-        reprompt_text = "Could you repeat your answer?" \
+        speech_output = "Could you repeat your answer?"
+        reprompt_text = "Could you repeat your answer?"
         should_end_session = False
         return build_response(session_attributes, build_speechlet_response(
             '', speech_output, reprompt_text, should_end_session))

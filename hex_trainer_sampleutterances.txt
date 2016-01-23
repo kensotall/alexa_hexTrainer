@@ -2,9 +2,7 @@ PlayIntent play a game
 PlayIntent practice
 PlayIntent start a game
 GameTypeIntent start a {Game} game
-GameTypeIntent start a mixed game
 GameTypeIntent {Game}
 AnswerIntent dec {DecimalAnswer}
-AnswerIntent hex {HexAnswer1} {HexAnswer2}
-AMAZON.StartOverIntent new game
-AMAZON.StartOverIntent start new game
+AnswerIntent hex {HexAnswerOne}
+AnswerIntent hex {HexAnswerOne} {HexAnswerTwo}
