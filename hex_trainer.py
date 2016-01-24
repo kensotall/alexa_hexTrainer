@@ -122,20 +122,24 @@ def get_question(session_attributes):
     session_attributes['answer'] = answer
     if session_attributes['game_type'] == 'hex to decimal':
         question = get_hex_question(answer)
+        session_attributes['hex'] = False
     elif session_attributes['game_type'] == 'decimal to hex':
         question = get_dec_question(answer)
+        session_attributes['hex'] = True
     else:
         if randint(0,1):
             question = get_hex_question(answer)
+            session_attributes['hex'] = False
         else:
             question = get_dec_question(answer)
+            session_attributes['hex'] = True
     return (question, session_attributes)
 
 def get_hex_question(answer):
     question = hex(answer)[2:]
     if len(question) > 1:
-        # Make Alexa spell out the hex
-        question = '.'.join(list(question)) + '.'
+        # Make Alexa spell out the hex, instead of trying to pronounce it
+        question = ' '.join(list(question))
     question = "What is {} in decimal.".format(question)
     return question
 
@@ -158,19 +162,21 @@ def get_answer(intent, session):
         speech_output = "Could you repeat your answer?"
         reprompt_text = "Could you repeat your answer?"
         should_end_session = False
-        return build_response(session_attributes, build_speechlet_response(
+        return build_response(session_attributes, build_speechlet_response_no_card(
             speech_output, reprompt_text, should_end_session))
     if user_answer == answer:
         response = ["Correct!", "Woot!", "Yes!", "Yep!", "You're on fire!", 
                     "Killin' it!", "You got it!, "]
         speech_output = response[randint(0, len(response)-1)] + " "
     else:
+        if session_attributes['hex']:
+            answer = ' '.join(list(hex(answer)[2:]))
         speech_output = "No, sorry the answer was {}. Let's keep trying! ".format(answer)
     (question, session_attributes) = get_question(session_attributes)
     speech_output += question
     reprompt_text = question    
     should_end_session = False
-    return build_response(session_attributes, build_speechlet_response(
+    return build_response(session_attributes, build_speechlet_response_no_card(
         speech_output, reprompt_text, should_end_session))
 
 # --------------- Helpers that build all of the responses ----------------------
