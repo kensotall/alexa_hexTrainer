@@ -1,8 +1,15 @@
 PlayIntent play a game
 PlayIntent practice
 PlayIntent start a game
-GameTypeIntent start a {Game} game
+PlayIntent open hexercise
 GameTypeIntent {Game}
-AnswerIntent dec {DecimalAnswer}
-AnswerIntent hex {HexAnswerOne}
-AnswerIntent hex {HexAnswerOne} {HexAnswerTwo}
+GameTypeIntent start a {Game} game
+AnswerIntent {DecimalAnswer}
+AnswerIntent {HexAnswerOne}
+AnswerIntent {HexAnswerOne} {HexAnswerTwo}
+ScoreIntent score
+ScoreIntent the score
+ScoreIntent my score
+ScoreIntent what's my score
+ScoreIntent what is my score
+ScoreIntent what's the score

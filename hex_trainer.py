@@ -108,9 +108,9 @@ def set_game_type_in_session(intent, session):
         game_type = intent['slots']['Game']['value']
         session_attributes = {"game_type": game_type}
         speech_output = "Okay, let's practice " + game_type + "! "
-        (question, session_attributes) = get_question(session_attributes)
-        speech_output += question
-        reprompt_text = question        
+        session_attributes = get_question(session_attributes)
+        speech_output += session_attributes['question']
+        reprompt_text  = session_attributes['question']
     else:
         speech_output = "Sorry, I didn't get that. Please choose a game type again."
         reprompt_text = "Sorry, I didn't get that. Please choose a game type again."
@@ -119,62 +119,104 @@ def set_game_type_in_session(intent, session):
 
 def get_question(session_attributes):
     answer = randint(10,MAX_RANGE)
+    if session_attributes.has_key('answer'):
+        # Ensure we don't ask the same question back to back
+        while answer == session_attributes['answer']:
+            answer = randint(10,MAX_RANGE)
     session_attributes['answer'] = answer
     if session_attributes['game_type'] == 'hex to decimal':
-        question = get_hex_question(answer)
-        session_attributes['hex'] = False
+        # Hex to Decimal
+        question = hex_to_dec_question(answer)
+        session_attributes['answer_is_hex'] = False
     elif session_attributes['game_type'] == 'decimal to hex':
-        question = get_dec_question(answer)
-        session_attributes['hex'] = True
+        # Decimal to Hex
+        question = dec_to_hex_question(answer)
+        session_attributes['answer_is_hex'] = True
     else:
+        # Both
         if randint(0,1):
-            question = get_hex_question(answer)
-            session_attributes['hex'] = False
+            question = hex_to_dec_question(answer)
+            session_attributes['answer_is_hex'] = False
         else:
-            question = get_dec_question(answer)
-            session_attributes['hex'] = True
-    return (question, session_attributes)
+            question = dec_to_hex_question(answer)
+            session_attributes['answer_is_hex'] = True
+    session_attributes['question'] = question
+    return session_attributes
 
-def get_hex_question(answer):
+def hex_to_dec_question(answer):
     question = hex(answer)[2:]
     if len(question) > 1:
-        # Make Alexa spell out the hex, instead of trying to pronounce it
+        # Make Alexa spell out the hex
         question = ' '.join(list(question))
     question = "What is {} in decimal.".format(question)
     return question
 
-def get_dec_question(answer):
-    question = "What is {} in hex.".format(answer) 
+def dec_to_hex_question(answer):
+    question = "What is {} in hex.".format(answer)
     return question
 
 def get_answer(intent, session):
-    session_attributes = session.get('attributes', {})
     """Get answer from user, check, then ask another question"""
+    session_attributes = session.get('attributes', {})
     answer = session_attributes['answer']
-    if 'value' in intent['slots']['DecimalAnswer']:
-        user_answer = int(intent['slots']['DecimalAnswer']['value'])
-    elif 'value' in intent['slots']['HexAnswerOne']:
-        user_answer = intent['slots']['HexAnswerOne']['value']
-        if 'value' in intent['slots']['HexAnswerTwo']:
-            user_answer += intent['slots']['HexAnswerTwo']['value']
-        user_answer = int(user_answer, 16)
+    answer_is_hex = session_attributes['answer_is_hex']
+    user_answer = None
+    if answer_is_hex:
+        # Answer should be in hex
+        if 'value' in intent['slots']['HexAnswerOne']:
+            user_answer = intent['slots']['HexAnswerOne']['value']
+            if 'value' in intent['slots']['HexAnswerTwo']:
+                user_answer += intent['slots']['HexAnswerTwo']['value']
+            try:
+                user_answer = int(user_answer, 16)
+            except:
+                # catch error
+                user_answer = user_answer = None
+        elif 'value' in intent['slots']['DecimalAnswer']:
+            # Oops, hex answer was fielded as a decimal number. Treat as hex.
+            try:
+                user_answer = int(intent['slots']['DecimalAnswer']['value'], 16)
+            except:
+                # catch error
+                user_answer = user_answer = None
     else:
-        speech_output = "Could you repeat your answer?"
-        reprompt_text = "Could you repeat your answer?"
+        # Answer should be in decimal
+        if 'value' in intent['slots']['DecimalAnswer']:
+            try:
+                user_answer = int(intent['slots']['DecimalAnswer']['value'])
+            except:
+                # catch error
+                user_answer = user_answer = None
+        elif 'value' in intent['slots']['HexAnswerOne']:
+            # Oops, decimal answer was fielded as a hex number. Treat as decimal
+            try:
+                user_answer = int(intent['slots']['HexAnswerOne']['value'])
+            except:
+                # catch error
+                user_answer = user_answer = None
+        if 'value' in intent['slots']['HexAnswerTwo']:
+            # This shouldn't happen, raise error
+            user_answer = None
+    if user_answer == None:
+        speech_output = "Could you repeat your answer? " + session_attributes['question']
+        reprompt_text = "Could you repeat your answer? " + session_attributes['question']
         should_end_session = False
         return build_response(session_attributes, build_speechlet_response_no_card(
             speech_output, reprompt_text, should_end_session))
-    if user_answer == answer:
+    elif user_answer == answer:
+        # User was right
         response = ["Correct!", "Woot!", "Yes!", "Yep!", "You're on fire!", 
-                    "Killin' it!", "You got it!, "]
+                    "Killin' it!", "You got it!", "Right!",]
         speech_output = response[randint(0, len(response)-1)] + " "
     else:
-        if session_attributes['hex']:
+        # User was wrong
+        # If answer is in hex, convert to inform user of correct answer
+        if session_attributes['answer_is_hex']:
             answer = ' '.join(list(hex(answer)[2:]))
         speech_output = "No, sorry the answer was {}. Let's keep trying! ".format(answer)
-    (question, session_attributes) = get_question(session_attributes)
-    speech_output += question
-    reprompt_text = question    
+    session_attributes = get_question(session_attributes)
+    speech_output += session_attributes['question']
+    reprompt_text  = session_attributes['question']
     should_end_session = False
     return build_response(session_attributes, build_speechlet_response_no_card(
         speech_output, reprompt_text, should_end_session))

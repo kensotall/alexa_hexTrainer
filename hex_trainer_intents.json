@@ -30,6 +30,12 @@
        ]
     },
     {
+      "intent": "ScoreIntent"
+    },
+    {
+      "intent": "AMAZON.StopIntent"
+    },
+    {
       "intent": "AMAZON.HelpIntent"
     }
   ]
