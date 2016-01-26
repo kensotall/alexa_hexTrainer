@@ -4,12 +4,16 @@ PlayIntent start a game
 PlayIntent open hexercise
 GameTypeIntent {Game}
 GameTypeIntent start a {Game} game
+DifficultyIntent {Difficulty}
 AnswerIntent {DecimalAnswer}
 AnswerIntent {HexAnswerOne}
 AnswerIntent {HexAnswerOne} {HexAnswerTwo}
 ScoreIntent score
 ScoreIntent the score
 ScoreIntent my score
+ScoreIntent check score
+ScoreIntent check my score
+ScoreIntent check the score
 ScoreIntent what's my score
 ScoreIntent what is my score
 ScoreIntent what's the score

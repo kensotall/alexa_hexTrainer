@@ -2,13 +2,14 @@
 Ken Sanderson
 1/23/2016
 
-Hex Trainer Alexa Skill -- Game to improve ability to convert to and from hexadecimal
+Hexercise - Alexa Skill -- Game to improve ability to convert to and from hexadecimal
 
 """
 
 from __future__ import print_function
 from random import randint
 
+MIN_RANGE = 10
 MAX_RANGE = 32
 
 def lambda_handler(event, context):
@@ -62,8 +63,14 @@ def on_intent(intent_request, session):
     # Dispatch to your skill's intent handlers
     if intent_name == "GameTypeIntent":
         return set_game_type_in_session(intent, session)
+    elif intent_name == "DifficultyIntent":
+        return set_difficulty(intent, session)
     elif intent_name == "AnswerIntent":
         return get_answer(intent, session)
+    elif intent_name == "ScoreIntent":
+        return get_score(session)
+    elif intent_name == "AMAZON.StopIntent":
+        return get_score_then_quit(session)
     elif (intent_name == "PlayIntent") or (intent_name == "AMAZON.StartOverIntent") or (intent_name == "AMAZON.HelpIntent"):
         return get_welcome_response()
     else:
@@ -84,8 +91,8 @@ def on_session_ended(session_ended_request, session):
 def get_welcome_response():
     """At app opening"""
     session_attributes = {}
-    card_title = "Hex Trainer - by Ken"
-    speech_output = "Welcome to Ken's Hex Trainer App. " \
+    card_title = "Hexercise - by Ken"
+    speech_output = "Welcome to Ken's Hexercise App. " \
                     "Which type of practice would you like? " \
                     "decimal to hex, " \
                     "hex to decimal, " \
@@ -98,31 +105,68 @@ def get_welcome_response():
         card_title, speech_output, reprompt_text, should_end_session))
 
 def set_game_type_in_session(intent, session):
-    """ Sets the game type in the session and prepares the speech to reply to the
-    user.
-    """
+    """ Sets the game type in the session. """
     session_attributes = {}
+    session_attributes['score'] = 0
     should_end_session = False
 
     if 'Game' in intent['slots']:
         game_type = intent['slots']['Game']['value']
         session_attributes = {"game_type": game_type}
-        speech_output = "Okay, let's practice " + game_type + "! "
-        session_attributes = get_question(session_attributes)
-        speech_output += session_attributes['question']
-        reprompt_text  = session_attributes['question']
+        speech_output = "Great, now set the difficulty level. " \
+                        "Choose from: easy, medium, hard, or genius. "
+        reprompt_text = "Please choose: easy, medium, hard, or genius. "
+        should_end_session = False
     else:
         speech_output = "Sorry, I didn't get that. Please choose a game type again."
         reprompt_text = "Sorry, I didn't get that. Please choose a game type again."
     return build_response(session_attributes, build_speechlet_response_no_card(
         speech_output, reprompt_text, should_end_session))
 
+def set_difficulty(intent, session):
+    session_attributes = session.get('attributes', {})
+    if not session_attributes.has_key('score'):
+        session_attributes['score'] = 0
+    if 'Difficulty' in intent['slots']:
+        difficulty = intent['slots']['Difficulty']['value']
+        if difficulty == 'easy':
+            MIN_RANGE = 0
+            MAX_RANGE = 32
+        elif difficulty == 'medium':
+            MIN_RANGE = 10
+            MAX_RANGE = 48
+        elif difficulty == 'hard':
+            MIN_RANGE = 10
+            MAX_RANGE = 128
+        elif difficulty == 'genius':
+            MIN_RANGE = 10
+            MAX_RANGE = 255
+        else:
+            speech_output = "Sorry, I didn't get that. Please choose a difficulty level again."
+            reprompt_text = "Sorry, I didn't get that. Please choose a difficulty level again."
+            should_end_session = False
+            return build_response(session_attributes, build_speechlet_response_no_card(
+                speech_output, reprompt_text, should_end_session))
+
+        speech_output = "Okay, let's practice {} at the {} level! ".format(session_attributes['game_type'], difficulty)
+        if difficulty == 'genius':
+            speech_output = 'Good luck brainiac!'
+        session_attributes = get_question(session_attributes)
+        speech_output += session_attributes['question']
+        reprompt_text  = session_attributes['question']
+    else:
+        speech_output = "Sorry, I didn't get that. Please choose a difficulty level again."
+        reprompt_text = "Sorry, I didn't get that. Please choose a difficulty level again."
+    should_end_session = False
+    return build_response(session_attributes, build_speechlet_response_no_card(
+        speech_output, reprompt_text, should_end_session))
+
 def get_question(session_attributes):
-    answer = randint(10,MAX_RANGE)
+    answer = randint(MIN_RANGE, MAX_RANGE)
     if session_attributes.has_key('answer'):
         # Ensure we don't ask the same question back to back
         while answer == session_attributes['answer']:
-            answer = randint(10,MAX_RANGE)
+            answer = randint(MIN_RANGE, MAX_RANGE)
     session_attributes['answer'] = answer
     if session_attributes['game_type'] == 'hex to decimal':
         # Hex to Decimal
@@ -158,6 +202,16 @@ def dec_to_hex_question(answer):
 def get_answer(intent, session):
     """Get answer from user, check, then ask another question"""
     session_attributes = session.get('attributes', {})
+    if not session_attributes.has_key('score'):
+        session_attributes['score'] = 0
+
+    if not session_attributes.has_key('answer'):
+        # Shouldn't happen. We are not in the right code flow. Raise error.
+        speech_output = "I'm sorry, something went wrong. Please ask to start over."
+        reprompt_text = "Sorry, something went wrong. Please ask to start over."
+        should_end_session = False
+        return build_response(session_attributes, build_speechlet_response_no_card(
+            speech_output, reprompt_text, should_end_session))
     answer = session_attributes['answer']
     answer_is_hex = session_attributes['answer_is_hex']
     user_answer = None
@@ -206,18 +260,71 @@ def get_answer(intent, session):
     elif user_answer == answer:
         # User was right
         response = ["Correct!", "Woot!", "Yes!", "Yep!", "You're on fire!", 
-                    "Killin' it!", "You got it!", "Right!",]
+                    "Killing it!", "You got it!", "Right!",]
         speech_output = response[randint(0, len(response)-1)] + " "
+        session_attributes['score'] += 1
+        if (session_attributes['score'] % 10 == 0) and (session_attributes['score'] != 0):
+            # update user on score
+            speech_output += "{} points, keep going! ".format(session_attributes['score'])
     else:
         # User was wrong
         # If answer is in hex, convert to inform user of correct answer
         if session_attributes['answer_is_hex']:
             answer = ' '.join(list(hex(answer)[2:]))
         speech_output = "No, sorry the answer was {}. Let's keep trying! ".format(answer)
+        session_attributes['score'] -= 2
+        # Don't go negative, that's just mean
+        if session_attributes['score'] < 0:
+            session_attributes['score'] = 0
     session_attributes = get_question(session_attributes)
     speech_output += session_attributes['question']
     reprompt_text  = session_attributes['question']
     should_end_session = False
+    return build_response(session_attributes, build_speechlet_response_no_card(
+        speech_output, reprompt_text, should_end_session))
+
+def get_score(session):
+    """Get user score"""
+    session_attributes = session.get('attributes', {})
+    if session_attributes.has_key('score'):
+        score = session_attributes['score']
+    else:
+        score = 0
+    if score == 1:
+        speech_output = "You have {} point. ".format(score)
+    else:
+        speech_output = "You have {} points. ".format(score)
+
+    # If game type not set yet, do it (shouldn't happen)
+    if not session_attributes.has_key('game_type'):
+        speech_output += "Which type of practice would you like? " \
+                         "decimal to hex, " \
+                         "hex to decimal, " \
+                         "or both."
+        reprompt_text = "Please choose decimal to hex, hex to decimal, or both. "
+        should_end_session = False
+        return build_response(session_attributes, build_speechlet_response_no_card(
+            speech_output, reprompt_text, should_end_session))
+        
+    # Now ask the previous question again (or ask a new one if can't access it)
+    if not session_attributes.has_key('question'):
+        session_attributes = get_question(session_attributes)
+    speech_output += session_attributes['question']
+    reprompt_text  = session_attributes['question']
+    should_end_session = False
+    return build_response(session_attributes, build_speechlet_response_no_card(
+        speech_output, reprompt_text, should_end_session))
+   
+def get_score_then_quit(session):
+    """Get user score then quit"""
+    session_attributes = session.get('attributes', {})
+    if session_attributes.has_key('score'):
+        score = session_attributes['score']
+    else:
+        score = 0
+    speech_output = "You reached {} points. Thanks for playing! ".format(score)
+    reprompt_text = ""
+    should_end_session = True
     return build_response(session_attributes, build_speechlet_response_no_card(
         speech_output, reprompt_text, should_end_session))
 

@@ -13,6 +13,15 @@
        ]
     },
     {
+      "intent": "DifficultyIntent",
+      "slots": [
+        {
+          "name": "Difficulty",
+          "type": "LIST_OF_DIFFICULTY"
+        }
+       ]
+    },
+    {
       "intent": "AnswerIntent",
       "slots": [
         {
