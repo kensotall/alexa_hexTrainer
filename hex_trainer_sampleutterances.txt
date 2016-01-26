@@ -6,14 +6,17 @@ GameTypeIntent {Game}
 GameTypeIntent start a {Game} game
 DifficultyIntent {Difficulty}
 AnswerIntent {DecimalAnswer}
+AnswerIntent decimal {DecimalAnswer}
 AnswerIntent {HexAnswerOne}
 AnswerIntent {HexAnswerOne} {HexAnswerTwo}
+AnswerIntent hex {HexAnswerOne}
+AnswerIntent hex {HexAnswerOne} {HexAnswerTwo}
 ScoreIntent score
-ScoreIntent the score
 ScoreIntent my score
 ScoreIntent check score
 ScoreIntent check my score
 ScoreIntent check the score
+ScoreIntent tell me the score
 ScoreIntent what's my score
 ScoreIntent what is my score
 ScoreIntent what's the score
